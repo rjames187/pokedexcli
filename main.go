@@ -2,19 +2,15 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 )
 
-type cliCommand struct {
-	name string
-	description string
-	callback func() error
-}
-
 func main() {
+
 	reader := bufio.NewScanner(os.Stdin)
+	runner := NewRunner()
 	for reader.Scan() {
-		fmt.Print(reader.Text())
+		input := parseInput(reader.Text())
+		runner.exeCommand(input[0])
 	}
 }
