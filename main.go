@@ -1,7 +1,20 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
+
+type cliCommand struct {
+	name string
+	description string
+	callback func() error
+}
 
 func main() {
-	fmt.Println("Hello world!")
+	reader := bufio.NewScanner(os.Stdin)
+	for reader.Scan() {
+		fmt.Print(reader.Text())
+	}
 }
