@@ -2,19 +2,18 @@ package pokeapi
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 )
 
 type PageConfig struct {
-	next string
-	prev string
+	Cur string
+	Next string
+	Prev string
 }
 
 type apiResponse struct {
-	count int
 	next string
 	previous string
 	results []locationResult
@@ -22,7 +21,39 @@ type apiResponse struct {
 
 type locationResult struct {
 	name string
-	url string
+}
+
+func GetLocations(config *PageConfig, forwards bool) ([]string, *PageConfig, error) {
+	url := ""
+	if config.Next == "" && config.Prev == "" {
+		url = "https://pokeapi.co/api/v2/location-area"
+	} else if forwards {
+		if config.Next == "" {
+			url = config.Cur
+		} else {
+			url = config.Next
+		}
+	} else {
+		if config.Prev == "" {
+			url = config.Cur
+		} else {
+			url = config.Prev
+		}
+	}
+
+	response, err := request(url)
+	if err != nil {
+		return nil, nil, err
+	}
+	locations := []string{}
+	for _, result := range response.results {
+		locations = append(locations, result.name)
+	}
+	newConfig := &PageConfig{}
+	newConfig.Cur = url
+	newConfig.Prev = response.previous
+	newConfig.Next = response.next
+	return locations, newConfig, nil
 }
 
 func request(url string) (*apiResponse, error) {
@@ -33,7 +64,7 @@ func request(url string) (*apiResponse, error) {
 	body, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if res.StatusCode > 299 {
-		return nil, errors.New(fmt.Sprintf("Request failed with status %d", res.StatusCode))
+		return nil, fmt.Errorf("request failed with a status %d", res.StatusCode)
 	}
 	if err != nil {
 		return nil, err
