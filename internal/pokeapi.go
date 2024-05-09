@@ -13,14 +13,14 @@ type PageConfig struct {
 	Prev string
 }
 
-type apiResponse struct {
-	next string
-	previous string
-	results []locationResult
-}
-
-type locationResult struct {
-	name string
+type ApiResponse struct {
+	Count    int    `json:"count"`
+	Next     string `json:"next"`
+	Previous string `json:"previous"`
+	Results  []struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	} `json:"results"`
 }
 
 func GetLocations(config *PageConfig, forwards bool) ([]string, *PageConfig, error) {
@@ -46,17 +46,17 @@ func GetLocations(config *PageConfig, forwards bool) ([]string, *PageConfig, err
 		return nil, nil, err
 	}
 	locations := []string{}
-	for _, result := range response.results {
-		locations = append(locations, result.name)
+	for _, result := range response.Results {
+		locations = append(locations, result.Name)
 	}
 	newConfig := &PageConfig{}
 	newConfig.Cur = url
-	newConfig.Prev = response.previous
-	newConfig.Next = response.next
+	newConfig.Prev = response.Previous
+	newConfig.Next = response.Next
 	return locations, newConfig, nil
 }
 
-func request(url string) (*apiResponse, error) {
+func request(url string) (*ApiResponse, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func request(url string) (*apiResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	data := &apiResponse{}
+	data := &ApiResponse{}
 	err = json.Unmarshal(body, data)
 	if err != nil {
 		return nil, err

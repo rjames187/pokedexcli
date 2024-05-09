@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	pokeapi "pokedexcli/internal"
 )
 
 type cliCommand struct {
 	name string
 	description string
 	callback func(map[string]cliCommand) error
+	config *pokeapi.PageConfig
 }
 
 type commandRunner struct {
@@ -40,6 +42,12 @@ func NewRunner() *commandRunner {
 		description: "exits the Pokedex",
 		callback: commandExit,
 	}
+	runner.commands["map"] = cliCommand{
+		name: "map",
+		description: "explores the map going forwards",
+		callback: commandMap,
+		config: &pokeapi.PageConfig{},
+	}
 	return runner
 }
 
@@ -57,5 +65,19 @@ func commandHelp(commands map[string]cliCommand) error {
 
 func commandExit(commands map[string]cliCommand) error {
 	os.Exit(0)
+	return nil
+}
+
+func commandMap(commands map[string]cliCommand) error {
+	mapCommand := commands["map"]
+	locations, config, err := pokeapi.GetLocations(mapCommand.config, true)
+	if err != nil {
+		return err
+	}
+	mapCommand.config = config
+	commands["map"] = mapCommand
+	for _, location := range locations {
+		fmt.Println(location)
+	}
 	return nil
 }
