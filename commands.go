@@ -42,11 +42,18 @@ func NewRunner() *commandRunner {
 		description: "exits the Pokedex",
 		callback: commandExit,
 	}
+	pageConfig := &pokeapi.PageConfig{}
 	runner.commands["map"] = cliCommand{
 		name: "map",
 		description: "explores the map going forwards",
 		callback: commandMap,
-		config: &pokeapi.PageConfig{},
+		config: pageConfig,
+	}
+	runner.commands["mapb"] = cliCommand{
+		name: "mapb",
+		description: "explores the map going backwards",
+		callback: commandMapb,
+		config: pageConfig,
 	}
 	return runner
 }
@@ -76,6 +83,20 @@ func commandMap(commands map[string]cliCommand) error {
 	}
 	mapCommand.config = config
 	commands["map"] = mapCommand
+	for _, location := range locations {
+		fmt.Println(location)
+	}
+	return nil
+}
+
+func commandMapb(commands map[string]cliCommand) error {
+	mapCommand := commands["mapb"]
+	locations, config, err := pokeapi.GetLocations(mapCommand.config, false)
+	if err != nil {
+		return err
+	}
+	mapCommand.config = config
+	commands["mapb"] = mapCommand
 	for _, location := range locations {
 		fmt.Println(location)
 	}
