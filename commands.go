@@ -9,21 +9,25 @@ import (
 type cliCommand struct {
 	name string
 	description string
-	callback func(map[string]cliCommand) error
-	config *pokeapi.PageConfig
+	callback func(*commandConfig) error
 }
 
 type commandRunner struct {
+	config *commandConfig
+}
+
+type commandConfig struct {
 	commands map[string]cliCommand
+	pageConfig *pokeapi.PageConfig
 }
 
 func (c *commandRunner) exeCommand(name string) {
-	command, ok := c.commands[name]
+	command, ok := c.config.commands[name]
 	if !ok {
 		fmt.Printf("Error! %s is not a command", name)
 		os.Exit(1)
 	}
-	err := command.callback(c.commands)
+	err := command.callback(c.config)
 	if err != nil {
 		fmt.Print(err)
 		os.Exit(1)
@@ -31,72 +35,66 @@ func (c *commandRunner) exeCommand(name string) {
 }
 
 func NewRunner() *commandRunner {
-	runner := &commandRunner{commands: map[string]cliCommand{}}
-	runner.commands["help"] = cliCommand{
+	config := &commandConfig{map[string]cliCommand{}, nil}
+	config.commands["help"] = cliCommand{
 		name: "help",
 		description: "Displays a help message",
 		callback: commandHelp,
 	}
-	runner.commands["exit"] = cliCommand{
+	config.commands["exit"] = cliCommand{
 		name: "exit",
 		description: "exits the Pokedex",
 		callback: commandExit,
 	}
-	pageConfig := &pokeapi.PageConfig{}
-	runner.commands["map"] = cliCommand{
+	config.commands["map"] = cliCommand{
 		name: "map",
 		description: "explores the map going forwards",
 		callback: commandMap,
-		config: pageConfig,
 	}
-	runner.commands["mapb"] = cliCommand{
+	config.commands["mapb"] = cliCommand{
 		name: "mapb",
 		description: "explores the map going backwards",
 		callback: commandMapb,
-		config: pageConfig,
 	}
-	return runner
+	config.pageConfig = &pokeapi.PageConfig{}
+	return &commandRunner{config}
 }
 
-func commandHelp(commands map[string]cliCommand) error {
+func commandHelp(config *commandConfig) error {
 	fmt.Println("")
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
 	fmt.Println("")
-	for _, cmd := range commands {
+	for _, cmd := range config.commands {
 		fmt.Printf("%s: %s\n", cmd.name, cmd.description)
 	}
 	fmt.Println("")
 	return nil
 }
 
-func commandExit(commands map[string]cliCommand) error {
+func commandExit(config *commandConfig) error {
 	os.Exit(0)
 	return nil
 }
 
-func commandMap(commands map[string]cliCommand) error {
-	mapCommand := commands["map"]
-	locations, config, err := pokeapi.GetLocations(mapCommand.config, true)
+func commandMap(config *commandConfig) error {
+	locations, newPageConfig, err := pokeapi.GetLocations(config.pageConfig, true)
 	if err != nil {
 		return err
 	}
-	mapCommand.config = config
-	commands["map"] = mapCommand
+	config.pageConfig = newPageConfig
 	for _, location := range locations {
 		fmt.Println(location)
 	}
 	return nil
 }
 
-func commandMapb(commands map[string]cliCommand) error {
-	mapCommand := commands["mapb"]
-	locations, config, err := pokeapi.GetLocations(mapCommand.config, false)
+func commandMapb(config *commandConfig) error {
+	locations, newPageConfig, err := pokeapi.GetLocations(config.pageConfig, false)
 	if err != nil {
 		return err
 	}
-	mapCommand.config = config
-	commands["mapb"] = mapCommand
+	config.pageConfig = newPageConfig
 	for _, location := range locations {
 		fmt.Println(location)
 	}
