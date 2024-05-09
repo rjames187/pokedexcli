@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	pokeapi "pokedexcli/internal"
+	pokeapi "pokedexcli/internal/pokeapi"
 )
 
 type cliCommand struct {
