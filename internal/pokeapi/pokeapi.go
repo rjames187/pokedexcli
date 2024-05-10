@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"pokedexcli/internal/pokecache"
+	"time"
 )
 
 type PageConfig struct {
@@ -22,6 +24,10 @@ type ApiResponse struct {
 		URL  string `json:"url"`
 	} `json:"results"`
 }
+
+
+var interval, _ = time.ParseDuration("5m")
+var cache *pokecache.Cache = pokecache.NewCache(interval)
 
 func GetLocations(config *PageConfig, forwards bool) ([]string, *PageConfig, error) {
 	url := ""
@@ -57,20 +63,27 @@ func GetLocations(config *PageConfig, forwards bool) ([]string, *PageConfig, err
 }
 
 func request(url string) (*ApiResponse, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
+	body, present := cache.Get(url)
+	if present {
+		fmt.Println("cache accessed!")
 	}
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		return nil, fmt.Errorf("request failed with a status %d", res.StatusCode)
-	}
-	if err != nil {
-		return nil, err
+	if !present {
+		res, err := http.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		body, err = io.ReadAll(res.Body)
+		res.Body.Close()
+		if res.StatusCode > 299 {
+			return nil, fmt.Errorf("request failed with a status %d", res.StatusCode)
+		}
+		if err != nil {
+			return nil, err
+		}
+		cache.Add(url, body)
 	}
 	data := &ApiResponse{}
-	err = json.Unmarshal(body, data)
+	err := json.Unmarshal(body, data)
 	if err != nil {
 		return nil, err
 	}
